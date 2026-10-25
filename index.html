@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>集中力実験アプリ</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* 画面切り替え用のベーススタイル */
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .locked { opacity: 0.5; pointer-events: none; }
+        .test-instruction-box {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: left;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <h1>集中力実験アプリ</h1>
+
+    <!-- 1. 解説画面 -->
+    <div id="screen-tutorial" class="screen active card" style="max-width: 600px; text-align: left;">
+        
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #3498db;">
+            <h3 style="margin-top: 0; font-size: 16px; color: #2c3e50;">📋 実験の手順</h3>
+            <ol style="margin: 0; padding-left: 20px; line-height: 1.8; color: #555; font-size: 14px;">
+                <li><strong>ログイン:</strong> メールアドレスを入力します。</li>
+                <li><strong>基準値の測定:</strong> 比較用の基準値測定のため音源なしでテストを行います。</li>
+                <li><strong>音源の選択:</strong> 検証する音源を1つ選択します（選択後<strong>10分間以上</strong>試聴してください）。</li>
+                <li><strong>集中測定テスト:</strong> 再度テストを実施し、集中力や反応速度を測定します。</li>
+            </ol>
+        </div>
+
+        <div style="background: #fff3cd; padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ffeeba;">
+            <p style="margin: 0; font-size: 13px; color: #856404; line-height: 1.5;">
+                <strong>留意事項：</strong>なるべく普段作業する環境で行ってください。
+            </p>
+            <p style="margin: 0; font-size: 13px; color: #856404; line-height: 1.5;">
+                　　　　　イヤホン・ヘッドホンを用いても、スピーカーを使用しても構いません。
+            </p>
+            <p style="margin: 0; font-size: 13px; color: #856404; line-height: 1.5;">
+                　　　　　また、データは自動的に集計されます。
+            </p>
+        </div>
+
+        <button class="btn-main" onclick="goToLogin()">次へ進む</button>
+    </div>
+
+    <!-- 2. ログイン画面 -->
+    <div id="screen-login" class="screen card">
+        <h2>ログイン</h2>
+        <p>メールアドレスを入力してください</p>
+        <input type="email" id="user-email" placeholder="example@email.com" style="width: 100%; padding: 12px; margin: 15px 0; box-sizing: border-box; font-size: 16px;">
+        <button class="btn-main" onclick="handleLogin()">ログイン / 測定開始</button>
+    </div>
+
+    <!-- 3. 音源選択画面 -->
+    <div id="screen-sound-select" class="screen card">
+        <h2>音源選択</h2>
+        <p>聴く音源を選択してください</p>
+        <div style="margin: 20px 0;">
+            <select id="sound-select" style="width: 100%; padding: 12px; font-size: 16px;">
+                <option value="mozart">モーツァルト：K.448</option>
+                <option value="bach">J.S.バッハ：ゴルトベルク変奏曲</option>
+                <option value="debussy">ドビュッシー：月の光</option>
+                <option value="rain">自然音（雨）</option>
+                <option value="noise528">528Hzベース特殊ノイズ</option>
+            </select>
+        </div>
+        <button class="btn-start" onclick="startSoundPlay()">この音源で再生・決定</button>
+    </div>
+
+    <!-- 4. ホーム画面 -->
+    <div id="screen-home" class="screen card">
+        <h2>ホーム画面</h2>
+        
+        <!-- ホーム画面用の作業タイマー簡易表示 -->
+        <div style="background: #f1f2f6; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+            <p style="margin: 0 0 5px 0; font-size: 14px; color: #57606f;">作業用タイマー状態</p>
+            <div id="home-timer-display" style="font-size: 24px; font-weight: bold; color: #2c3e50;">00:00</div>
+            <div id="home-timer-phase" style="font-size: 12px; color: #e67e22; height: 16px;"></div>
+        </div>
+        
+        <!-- 集中測定ボタン（ロックカウントダウンをボタン内に統合） -->
+        <button id="btn-concentration" class="btn-main locked" onclick="goToConcentrationTest()">集中測定に進む (残り 10:00)</button>
+        
+        <button class="btn-settings" onclick="goToTimerSettings()" style="width: 100%; margin-top: 10px;">作業用タイマー</button>
+        <button class="btn-reset" onclick="stopAndReturnToSoundSelect()" style="width: 100%; margin-top: 10px;">中止（音源選択に戻る）</button>
+        <!-- ホーム画面のボタン群に追加 -->
+        <button class="btn-settings" onclick="goToLicense()" style="width: 100%; margin-top: 10px; background-color: #7f8c8d; color: white;">利用音源・ライセンス表記</button>
+    </div>
+
+    <!-- 5. 集中測定画面 -->
+    <div id="screen-test" class="screen card">
+        <h2 id="test-title">集中測定（テスト中）</h2>
+        
+        <!-- テスト個別解説画面 -->
+        <div id="test-instruction-screen" style="display: none;">
+            <div id="test-instruction-body" class="test-instruction-box"></div>
+            <button class="btn-start" onclick="startCurrentTestAfterInstruction()">テストスタート</button>
+        </div>
+
+        <!-- カウントダウン用（共通） -->
+        <div id="nback-countdown" class="countdown-overlay" style="display: none;"></div>
+
+        <!-- ① Nバックテストメインエリア -->
+        <div id="nback-game" class="game-box" style="display: none;">
+            <div class="test-header">
+                <p id="nback-progress">0 / 24 試行・3バック</p>
+            </div>
+
+            <!-- 3x3グリッド -->
+            <div class="grid-3x3" id="nback-grid">
+                <div class="grid-cell" data-index="0"></div>
+                <div class="grid-cell" data-index="1"></div>
+                <div class="grid-cell" data-index="2"></div>
+                <div class="grid-cell" data-index="3"></div>
+                <div class="grid-cell" data-index="4"></div>
+                <div class="grid-cell" data-index="5"></div>
+                <div class="grid-cell" data-index="6"></div>
+                <div class="grid-cell" data-index="7"></div>
+                <div class="grid-cell" data-index="8"></div>
+            </div>
+
+            <!-- 回答用ボタン -->
+            <div class="action-area" style="margin-top: 20px;">
+                <button id="nback-match-btn" class="match-button">同じ</button>
+                <p class="sub-text" style="font-size: 12px; color: #7f8c8d; margin-top: 8px;">最初の3回は記録されません（比較対象が揃うまで）</p>
+            </div>
+        </div>
+
+        <!-- ② 計算テストメインエリア -->
+        <div id="calc-game" class="game-box" style="display: none;">
+            <div class="test-header">
+                <p id="calc-progress">1 / 10 問</p>
+                <!-- 残り時間バー -->
+                <div id="calc-timer-bar-bg" style="width: 100%; background: #ddd; height: 8px; border-radius: 4px; margin: 10px 0; overflow: hidden;">
+                    <div id="calc-timer-bar" style="width: 100%; background: #e67e22; height: 100%; transition: width 0.1s linear;"></div>
+                </div>
+            </div>
+
+            <!-- 数式表示エリア -->
+            <div id="calc-question" style="font-size: 3rem; font-weight: bold; margin: 30px 0; color: #2c3e50; text-align: center;">
+                47 + 38 = ?
+            </div>
+
+            <!-- 4択ボタンエリア -->
+            <div id="calc-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 400px; margin: 0 auto;">
+                <button class="calc-btn" data-opt="0">75</button>
+                <button class="calc-btn" data-opt="1">85</button>
+                <button class="calc-btn" data-opt="2">95</button>
+                <button class="calc-btn" data-opt="3">84</button>
+            </div>
+        </div>
+
+        <!-- ③ ストループテストメインエリア -->
+        <div id="stroop-game" class="game-box" style="display: none;">
+            <div class="test-header">
+                <p id="stroop-progress">1 / 20 問</p>
+            </div>
+
+            <!-- 色付き文字表示エリア -->
+            <div id="stroop-target" style="font-size: 4rem; font-weight: bold; margin: 40px 0; text-align: center; height: 100px; display: flex; align-items: center; justify-content: center;">
+                あお
+            </div>
+
+            <!-- 6色回答ボタンエリア -->
+            <div id="stroop-options" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 450px; margin: 0 auto;">
+                <button class="stroop-btn" data-index="0"></button>
+                <button class="stroop-btn" data-index="1"></button>
+                <button class="stroop-btn" data-index="2"></button>
+                <button class="stroop-btn" data-index="3"></button>
+                <button class="stroop-btn" data-index="4"></button>
+                <button class="stroop-btn" data-index="5"></button>
+            </div>
+        </div>
+
+        <button class="btn-reset" onclick="returnToHome()" style="margin-top: 20px; display: none;" id="nback-back-home-btn">ホームに戻る</button>
+    </div>
+
+    <!-- 6. 作業用タイマー画面 -->
+    <div id="screen-timer" class="screen card">
+        <h2>作業用タイマー</h2>
+        
+        <!-- モード選択 -->
+        <div style="margin: 15px 0; text-align: left;">
+            <label style="display: block; margin-bottom: 5px;"><input type="radio" name="timer-mode" value="up" checked onclick="switchTimerMode()"> カウントアップ</label>
+            <label style="display: block; margin-bottom: 5px;"><input type="radio" name="timer-mode" value="down" onclick="switchTimerMode()"> カウントダウン</label>
+            <label style="display: block; margin-bottom: 5px;"><input type="radio" name="timer-mode" value="break" onclick="switchTimerMode()"> カウントダウン（休憩あり）</label>
+        </div>
+
+        <!-- 設定入力エリア -->
+        <div id="timer-settings-area" style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left;">
+            <div id="setting-work" style="margin-bottom: 10px;">
+                <label>作業時間: 
+                    <input type="number" id="work-min" value="25" min="0" style="width: 60px;" oninput="validatePositiveInput(this)"> 分 
+                    <input type="number" id="work-sec" value="0" min="0" max="59" style="width: 60px;" oninput="validatePositiveInput(this)"> 秒
+                </label>
+            </div>
+            <div id="setting-break" style="margin-bottom: 10px; display: none;">
+                <label>休憩時間: 
+                    <input type="number" id="break-min" value="5" min="0" style="width: 60px;" oninput="validatePositiveInput(this)"> 分 
+                    <input type="number" id="break-sec" value="0" min="0" max="59" style="width: 60px;" oninput="validatePositiveInput(this)"> 秒
+                </label>
+            </div>
+            <div id="setting-sets" style="margin-bottom: 5px; display: none;">
+                <label>セット数（作業回数）: 
+                    <input type="number" id="set-count" value="3" min="1" style="width: 60px;" oninput="validatePositiveInput(this)"> 回
+                </label>
+            </div>
+        </div>
+
+        <!-- タイマー表示 -->
+        <div id="work-timer-display" style="font-size: 50px; font-weight: bold; margin: 15px 0; color: #2c3e50;">00:00</div>
+        <div id="timer-phase-display" style="font-weight: bold; color: #e67e22; margin-bottom: 10px; height: 20px;"></div>
+
+        <!-- 操作ボタン -->
+        <button id="timer-control-btn" class="btn-start" onclick="toggleWorkTimer()">タイマー開始</button>
+        <button class="btn-reset" onclick="resetWorkTimer()" style="margin-top: 10px; width: 100%;">リセット</button>
+        <button class="btn-settings" onclick="returnToHome()" style="margin-top: 10px; width: 100%;">ホームに戻る</button>
+    </div>
+
+    <!-- 7. ライセンス表記画面 -->
+    <div id="screen-license" class="screen card" style="max-width: 600px; text-align: left;">
+        <h2 style="text-align: center; color: #2c3e50; margin-bottom: 20px;">ライセンス・利用音源について</h2>
+        
+        <p style="font-size: 14px; color: #555; line-height: 1.6;">
+            本アプリで使用している音源および素材のクレジットは以下の通りです。
+        </p>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; font-size: 13px; line-height: 1.6; color: #444; max-height: 250px; overflow-y: auto;">
+            <p style="margin-bottom: 12px;">
+                <strong>・Sonata for Two Pianos in D major, K. 448</strong><br>
+                作曲: W.A.Mozart<br>
+                演奏: Paavali Jumppanen<br>
+                ライセンス: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> / Public Domain<br>
+                音源元: <a href="https://musopen.org/music/3105-sonata-for-two-pianos-in-d-major-k-448375a/" target="_blank" rel="noopener">Musopen Track Page</a>
+            </p>
+
+            <p style="margin-bottom: 12px;">
+                <strong>・Goleberg</strong><br>
+                作曲: J.S.Bach<br>
+                演奏: Sheller Katz<br>
+                ライセンス: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> / Public Domain<br>
+                音源元: <a href="https://musopen.org/music/4107-goldberg-variations-bwv-988/" target="_blank" rel="noopener">Musopen Track Page</a>
+            </p>
+            <p style="margin-bottom: 12px;">
+                <strong>・Clair de Luna</strong><br>
+                作曲: Claude Debussy<br>
+                演奏: Jacopo Salvatori<br>
+                ライセンス: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> / Public Domain<br>
+                音源元: <a href="https://musopen.org/music/2504-suite-bergamasque/" target="_blank" rel="noopener">Musopen Track Page</a>
+            </p>
+            <p style="margin-bottom: 12px;">
+                <strong>・雨音</strong><br>
+                Sound Effect by LIECO from pixabay<br>
+            </p>
+        </div>
+
+        <button class="btn-main" onclick="returnToHome()" style="margin-top: 10px;">ホームに戻る</button>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+/* css/style.css */
+body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    background-color: #f8f9fa; /* 薄いグレー */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+}
+
+h1 { color: #2c3e50; }
+
+.card {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    text-align: center;
+    width: 90%;
+    max-width: 500px;
+}
+
+#timer-display { font-size: 60px; color: #34495e; margin: 20px 0; }
+
+button {
+    font-size: 16px; padding: 12px 24px; margin: 5px; border: none; 
+    border-radius: 8px; cursor: pointer; transition: 0.3s;
+}
+
+.btn-start { background-color: #27ae60; color: white; }
+.btn-reset { background-color: #3498db; color: white; }
+.btn-settings { background-color: #95a5a6; color: white; }
+.btn-main { background-color: #f1c40f; color: #333; width: 100%; padding: 15px; margin-top: 20px; font-weight: bold; }
+
+#test-area {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    text-align: center;
+    width: 90%;
+    max-width: 500px;
+}
+
+#question { font-size: 48px; font-weight: bold; color: #2c3e50; margin: 20px 0; }
+
+#answer {
+    width: 100%; padding: 20px; font-size: 32px; border: 2px solid #ddd;
+    border-radius: 10px; box-sizing: border-box; text-align: center;
+}
+
+/* Nバック用スタイル */
+.test-container {
+    max-width: 500px;
+    margin: 0 auto;
+    text-align: center;
+    position: relative;
+}
+
+.countdown-overlay {
+    font-size: 6rem;
+    font-weight: bold;
+    color: #3b82f6;
+    padding: 3rem 0;
+}
+
+.grid-3x3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+    aspect-ratio: 1 / 1;
+}
+
+.grid-cell {
+    background-color: #2a2a2a;
+    border-radius: 12px;
+    border: 1px solid #444;
+    transition: background-color 0.1s ease;
+}
+
+/*Nバック用スタイル*/
+/* 点灯時のスタイル */
+.grid-cell.active {
+    background-color: #3b82f6;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+}
+
+.match-button {
+    width: 100%;
+    padding: 16px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: white;
+    background-color: #2563eb;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    touch-action: manipulation; /* タッチ遅延を解消 */
+}
+
+.match-button:active {
+    background-color: #1d4ed8;
+}
+
+.match-button.recorded {
+    background-color: #4b5563;
+}
+
+/* 計算テスト用スタイル */
+.calc-btn {
+    padding: 20px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #fff;
+    background-color: #34495e;
+    border: 2px solid #5d6d7e;
+    border-radius: 12px;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.calc-btn:active {
+    background-color: #2e4053;
+    transform: scale(0.98);
+}
+
+/*ストループテスト*/
+.stroop-btn {
+    padding: 15px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #fff;
+    background-color: #34495e;
+    border: 2px solid #5d6d7e;
+    border-radius: 10px;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.stroop-btn:active {
+    background-color: #2e4053;
+    transform: scale(0.98);
+}

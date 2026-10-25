@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>タイマー設定</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .settings-container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 400px;
+            margin: 50px auto;
+            text-align: left;
+        }
+        .settings-container h2 { text-align: center; color: #2c3e50; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
+        .input-group input { 
+            width: 100%; padding: 12px; border: 2px solid #ddd; 
+            border-radius: 8px; box-sizing: border-box; font-size: 16px;
+        }
+        .btn-save { 
+            background-color: #27ae60; color: white; width: 100%; padding: 15px; 
+            border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <h2>タイマー設定</h2>
+        <div class="input-group">
+            <label>作業時間 (分)</label>
+            <input type="number" id="workTime" value="25">
+        </div>
+        <div class="input-group">
+            <label>休憩時間 (分)</label>
+            <input type="number" id="breakTime" value="5">
+        </div>
+        <div class="input-group">
+            <label>繰り返し回数</label>
+            <input type="number" id="repeatCount" value="1">
+        </div>
+        <button class="btn-save" onclick="saveSettings()">設定を保存して戻る</button>
+    </div>
+
+    <script>
+        // 保存して戻る処理
+        function saveSettings() {
+            const workTime = document.getElementById('workTime').value;
+            const breakTime = document.getElementById('breakTime').value;
+            const repeatCount = document.getElementById('repeatCount').value;
+
+            // 0以下が入力されていたら保存させない
+            if (workTime <= 0 || breakTime <= 0 || repeatCount <= 0) {
+                alert("時間は1以上の整数を入力してください。");
+                return;
+            }
+
+            localStorage.setItem('workTime', workTime);
+            localStorage.setItem('breakTime', breakTime);
+            localStorage.setItem('repeatCount', repeatCount);
+            window.location.href = 'index.html';
+        }
+
+        // リアルタイム監視（入力時の処理）
+        const inputs = ['workTime', 'breakTime', 'repeatCount'];
+        inputs.forEach(id => {
+            const el = document.getElementById(id);
+            
+            // 1. 小数や0以下の場合は空白にする
+            el.addEventListener('input', (e) => {
+                let val = e.target.value;
+                if (val !== "" && (val <= 0 || val.includes('.') || val.includes('-'))) {
+                    e.target.value = "";
+                }
+            });
+
+            // 2. 矢印キー（スピンボタン）での増減制限
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowDown' && parseInt(el.value) <= 1) {
+                    e.preventDefault();
+                }
+            });
+        });
+
+        // 初期表示で保存された値をセット
+        window.onload = () => {
+            document.getElementById('workTime').value = localStorage.getItem('workTime') || 25;
+            document.getElementById('breakTime').value = localStorage.getItem('breakTime') || 5;
+            document.getElementById('repeatCount').value = localStorage.getItem('repeatCount') || 1;
+        };
+    </script>
+</body>
+</html>
