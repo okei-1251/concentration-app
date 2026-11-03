@@ -29,7 +29,7 @@
         <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #3498db;">
             <h3 style="margin-top: 0; font-size: 16px; color: #2c3e50;">📋 実験の手順</h3>
             <ol style="margin: 0; padding-left: 20px; line-height: 1.8; color: #555; font-size: 14px;">
-                <li><strong>ログイン:</strong> メールアドレスを入力します。</li>
+                <li><strong>ログイン:</strong> ユーザーIDを入力します。</li>
                 <li><strong>基準値の測定:</strong> 比較用の基準値測定のため音源なしでテストを行います。</li>
                 <li><strong>音源の選択:</strong> 検証する音源を1つ選択します（選択後<strong>10分間以上</strong>試聴してください）。</li>
                 <li><strong>集中測定テスト:</strong> 再度テストを実施し、集中力や反応速度を測定します。</li>
@@ -41,26 +41,33 @@
                 <strong>留意事項：</strong>なるべく普段作業する環境で行ってください。
             </p>
             <p style="margin: 0; font-size: 13px; color: #856404; line-height: 1.5;">
-                　　　　　イヤホン・ヘッドホンを用いても、スピーカーを使用しても構いません。
+                     イヤホン・ヘッドホンを用いても、スピーカーを使用しても構いません。
             </p>
             <p style="margin: 0; font-size: 13px; color: #856404; line-height: 1.5;">
-                　　　　　また、データは自動的に集計されます。
+                     また、データは自動的に集計されます。
             </p>
         </div>
 
         <button class="btn-main" onclick="goToLogin()">次へ進む</button>
+        <!-- スタート画面（解説画面）に移動したライセンスボタン -->
+        <button class="btn-settings" onclick="goToLicense()" style="width: 100%; margin-top: 10px; background-color: #7f8c8d; color: white;">利用音源・ライセンス表記</button>
     </div>
 
     <!-- 2. ログイン画面 -->
     <div id="screen-login" class="screen card">
         <h2>ログイン</h2>
-        <p>メールアドレスを入力してください</p>
-        <input type="email" id="user-email" placeholder="example@email.com" style="width: 100%; padding: 12px; margin: 15px 0; box-sizing: border-box; font-size: 16px;">
+        <p>ユーザーID（自由設定）を入力してください<br>
+        なるべく被らないように設定してください</p>
+        <input type="text" id="user-email" placeholder="例: user123" style="width: 100%; padding: 12px; margin: 15px 0; box-sizing: border-box; font-size: 16px;">
         <button class="btn-main" onclick="handleLogin()">ログイン / 測定開始</button>
     </div>
 
     <!-- 3. 音源選択画面 -->
     <div id="screen-sound-select" class="screen card">
+        <p style="font-size: 13px; color: #666; margin-bottom: 15px; line-height: 1.4;">
+        音量は意識しないとはっきりと聴こえない程度に小さめにしてください。<br>
+        突然の大きな音を防ぐため、<strong>音量0の状態から少しずつ上げて</strong>調整してください。
+    </p>
         <h2>音源選択</h2>
         <p>聴く音源を選択してください</p>
         <div style="margin: 20px 0;">
@@ -87,12 +94,10 @@
         </div>
         
         <!-- 集中測定ボタン（ロックカウントダウンをボタン内に統合） -->
-        <button id="btn-concentration" class="btn-main locked" onclick="goToConcentrationTest()">集中測定に進む (残り 10:00)</button>
+        <button id="btn-concentration" class="btn-main locked" onclick="goToConcentrationTest()">集中測定に進む 残り 10:00</button>
         
         <button class="btn-settings" onclick="goToTimerSettings()" style="width: 100%; margin-top: 10px;">作業用タイマー</button>
         <button class="btn-reset" onclick="stopAndReturnToSoundSelect()" style="width: 100%; margin-top: 10px;">中止（音源選択に戻る）</button>
-        <!-- ホーム画面のボタン群に追加 -->
-        <button class="btn-settings" onclick="goToLicense()" style="width: 100%; margin-top: 10px; background-color: #7f8c8d; color: white;">利用音源・ライセンス表記</button>
     </div>
 
     <!-- 5. 集中測定画面 -->
@@ -103,6 +108,18 @@
         <div id="test-instruction-screen" style="display: none;">
             <div id="test-instruction-body" class="test-instruction-box"></div>
             <button class="btn-start" onclick="startCurrentTestAfterInstruction()">テストスタート</button>
+        </div>
+
+        <!-- テスト終了後の結果表示画面 -->
+        <div id="screen-test-result" style="display: none; text-align: left;">
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #27ae60;">
+                <h3 id="result-test-name" style="margin-top: 0; color: #2c3e50;">テスト結果</h3>
+                <p style="font-size: 16px; margin: 10px 0;"><strong>・正答率:</strong> <span id="res-accuracy">-</span></p>
+                <p style="font-size: 16px; margin: 10px 0;"><strong>・平均反応速度:</strong> <span id="res-avg-rt">-</span></p>
+                <p style="font-size: 16px; margin: 10px 0;"><strong>・正解数 / 総問題数:</strong> <span id="res-score">-</span></p>
+                <p style="font-size: 16px; margin: 10px 0;"><strong>・タイムアウト回数:</strong> <span id="res-timeout">-</span></p>
+            </div>
+            <button class="btn-main" onclick="proceedToNextStep()" style="width: 100%;">次へ進む</button>
         </div>
 
         <!-- カウントダウン用（共通） -->
@@ -162,6 +179,9 @@
         <div id="stroop-game" class="game-box" style="display: none;">
             <div class="test-header">
                 <p id="stroop-progress">1 / 20 問</p>
+                <div id="stroop-timer-bar-bg" style="width: 100%; background: #ddd; height: 8px; border-radius: 4px; margin: 10px 0; overflow: hidden;">
+                    <div id="stroop-timer-bar" style="width: 100%; background: #e67e22; height: 100%; transition: width 0.1s linear;"></div>
+                </div>
             </div>
 
             <!-- 色付き文字表示エリア -->
@@ -243,7 +263,7 @@
             </p>
 
             <p style="margin-bottom: 12px;">
-                <strong>・Goleberg</strong><br>
+                <strong>・Goldberg</strong><br>
                 作曲: J.S.Bach<br>
                 演奏: Sheller Katz<br>
                 ライセンス: <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> / Public Domain<br>
@@ -262,7 +282,7 @@
             </p>
         </div>
 
-        <button class="btn-main" onclick="returnToHome()" style="margin-top: 10px;">ホームに戻る</button>
+        <button class="btn-main" onclick="returnToTutorial()" style="margin-top: 10px;">戻る</button>
     </div>
 
     <script src="js/app.js"></script>

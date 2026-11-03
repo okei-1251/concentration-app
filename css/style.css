@@ -30,8 +30,8 @@ button {
 }
 
 .btn-start { background-color: #27ae60; color: white; }
-.btn-reset { background-color: #3498db; color: white; }
-.btn-settings { background-color: #95a5a6; color: white; }
+.btn-reset { background-color: #798790; color: white; }
+.btn-settings { background-color: #37a3eb; color: white; }
 .btn-main { background-color: #f1c40f; color: #333; width: 100%; padding: 15px; margin-top: 20px; font-weight: bold; }
 
 #test-area {

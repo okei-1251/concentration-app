@@ -17,6 +17,10 @@ function goToLicense() {
     showScreen('screen-license');
 }
 
+function returnToTutorial() {
+    showScreen('screen-tutorial');
+}
+
 // --- 実験データ管理マネージャー ---
 const ExperimentDataManager = {
     data: {
@@ -90,7 +94,7 @@ const ExperimentDataManager = {
         const baselineStats = calculateStats(this.data.baselineResults.logs);
         const normalStats = calculateStats(this.data.normalResults.logs);
 
-        const summaryObj = {
+        const payload = {
             Email: this.data.userEmail,
             Sound: this.data.selectedSound,
             Baseline_NBack: `${baselineStats['N-Back'].scoreStr} (${baselineStats['N-Back'].avgRtMs})`,
@@ -99,24 +103,24 @@ const ExperimentDataManager = {
             Normal_NBack: `${normalStats['N-Back'].scoreStr} (${normalStats['N-Back'].avgRtMs})`,
             Normal_Calc: `${normalStats['Calculation'].scoreStr} (${normalStats['Calculation'].avgRtMs})`,
             Normal_Stroop: `${normalStats['Stroop'].scoreStr} (${normalStats['Stroop'].avgRtMs})`,
-            RawDetails: this.data
+            StartedAt: this.data.startedAt,
+            FinishedAt: this.data.finishedAt
         };
 
-        const FORM_URL = "https://docs.google.com/forms/u/2/d/1mVtlQ6lQG8K1GCLueIdrsCKyf5EFQ55ZXCleff0ub4w/formResponse";
-        const ENTRY_EMAIL = "entry.941106559"; 
-        const ENTRY_DATA = "entry.1806174185";  
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwmuIAIGbvALyAYg0dKjzSKdOrlqX2UF5Cv3sRFhHW-ANAQWdG9HYfgmR_wcBVXHWO2/exec"; 
 
-        const formData = new FormData();
-        formData.append(ENTRY_EMAIL, this.data.userEmail);
-        formData.append(ENTRY_DATA, JSON.stringify(summaryObj, null, 2));
-
-        fetch(FORM_URL, {
-            method: "POST",
-            body: formData,
-            mode: "no-cors"
-        }).then(() => {
-            console.log("データをGoogleフォームに送信しました。");
-        }).catch(error => {
+        fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors', // CORS制限回避用
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(() => {
+            console.log("スプレッドシートへデータを直接送信しました。");
+        })
+        .catch(error => {
             console.error("送信エラー:", error);
         });
     }
@@ -242,6 +246,7 @@ function showTestInstruction(testName, bodyHtml, nextAction) {
     document.getElementById('nback-game').style.display = 'none';
     document.getElementById('calc-game').style.display = 'none';
     document.getElementById('stroop-game').style.display = 'none';
+    document.getElementById('screen-test-result').style.display = 'none';
 
     const titleEl = document.getElementById('test-title');
     if (titleEl) titleEl.innerText = testName;
@@ -259,6 +264,48 @@ function startCurrentTestAfterInstruction() {
     document.getElementById('test-instruction-screen').style.display = 'none';
     if (typeof currentExecutingTest === 'function') {
         currentExecutingTest();
+    }
+}
+
+// --- 各種テスト結果を表示する共通関数 ---
+let nextStepCallback = null;
+
+function showTestResultScreen(testTypeName, mode, nextActionCallback) {
+    showScreen('screen-test');
+    document.getElementById('test-instruction-screen').style.display = 'none';
+    document.getElementById('nback-game').style.display = 'none';
+    document.getElementById('calc-game').style.display = 'none';
+    document.getElementById('stroop-game').style.display = 'none';
+
+    const resultScreen = document.getElementById('screen-test-result');
+    resultScreen.style.display = 'block';
+
+    document.getElementById('result-test-name').innerText = `${testTypeName} の結果`;
+
+    const logs = mode === 'baseline' ? ExperimentDataManager.data.baselineResults.logs : ExperimentDataManager.data.normalResults.logs;
+    const testLogs = logs.filter(l => l.testType === testTypeName);
+
+    const total = testLogs.length;
+    const correctCount = testLogs.filter(l => l.isCorrect).length;
+    const accuracy = total > 0 ? (correctCount / total * 100).toFixed(1) + '%' : '0%';
+    
+    const validTimes = testLogs.filter(l => l.responseTimeMs !== null).map(l => l.responseTimeMs);
+    const avgRt = validTimes.length > 0 ? Math.round(validTimes.reduce((a, b) => a + b, 0) / validTimes.length) + 'ms' : '0ms';
+    
+    const timeoutCount = testLogs.filter(l => l.userAnswer === 'TIMEOUT').length;
+
+    document.getElementById('res-accuracy').innerText = accuracy;
+    document.getElementById('res-avg-rt').innerText = avgRt;
+    document.getElementById('res-score').innerText = `${correctCount} / ${total} 問`;
+    document.getElementById('res-timeout').innerText = `${timeoutCount} 回`;
+
+    nextStepCallback = nextActionCallback;
+}
+
+function proceedToNextStep() {
+    document.getElementById('screen-test-result').style.display = 'none';
+    if (typeof nextStepCallback === 'function') {
+        nextStepCallback();
     }
 }
 
@@ -302,6 +349,8 @@ const NBackTest = {
 
         showScreen('screen-test');
         
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
         const existingMsg = document.getElementById('test-complete-msg');
         if (existingMsg) existingMsg.remove();
 
@@ -448,7 +497,9 @@ const NBackTest = {
 
     finishTest() {
         document.getElementById('nback-game').style.display = 'none';
-        CalcTest.start(this.currentMode, this.currentRound);
+        showTestResultScreen("N-Back", this.currentMode, () => {
+            CalcTest.start(this.currentMode, this.currentRound);
+        });
     }
 };
 
@@ -456,7 +507,7 @@ const NBackTest = {
 // --- 計算テスト（4択 / 5秒制限 / 10問） ---
 // ==========================================
 const CalcTest = {
-    totalQuestions: 10,
+    totalQuestions: 20,
     timeLimitMs: 5000,
     currentQuestion: 0,
     questions: [],
@@ -637,31 +688,37 @@ const CalcTest = {
 
     finishTest() {
         document.getElementById('calc-game').style.display = 'none';
-        StroopTest.start(this.currentMode, this.currentRound);
+        showTestResultScreen("Calculation", this.currentMode, () => {
+            StroopTest.start(this.currentMode, this.currentRound);
+        });
     }
 };
 
 // ==========================================
-// --- ストループテスト（全20問 / 6色） ---
+// --- ストループテスト（全20問 / 6色 / 5秒制限） ---
 // ==========================================
 let retryAllowed = true;
+let baselineRetryAllowed = true;
 
 const StroopTest = {
     totalTrials: 20,
+    timeLimitMs: 5000,
     currentTrial: 0,
     trials: [],
+    timerId: null,
+    barIntervalId: null,
     startTime: 0,
     userResponded: false,
     currentMode: 'baseline',
     currentRound: 1,
 
     colors: [
-        { name: 'あか', code: '#ff1900' },
-        { name: 'あお', code: '#0039f4' },
-        { name: 'みどり', code: '#19d600' },
-        { name: 'きいろ', code: '#edf50d' },
-        { name: 'むらさき', code: '#7700a6' },
-        { name: 'おれんじ', code: '#d77607' }
+        { name: '赤', code: '#ff1900' },
+        { name: '青', code: '#0039f4' },
+        { name: '緑', code: '#19d600' },
+        { name: '黄', code: '#edf50d' },
+        { name: '紫', code: '#7700a6' },
+        { name: '橙', code: '#d77607' }
     ],
 
     start(mode = 'baseline', round = 1) {
@@ -673,6 +730,7 @@ const StroopTest = {
             <h3>ストループテスト (全20問) の手順</h3>
             <p>・文字が表示されます（例：「あお」）。</p>
             <p>・<strong>文字の意味ではなく、「表示されている文字の色」</strong>のボタンを選んでタップしてください。</p>
+            <p>・<strong>1問につき5秒以内</strong>に回答してください。</p>
             <p>・ボタンの位置は毎問シャッフルされます。</p>
         `;
 
@@ -717,19 +775,27 @@ const StroopTest = {
 
     generateTrials() {
         this.trials = [];
+        let trialPool = [];
         for (let i = 0; i < this.totalTrials; i++) {
-            const textObj = this.colors[Math.floor(Math.random() * this.colors.length)];
+            const textObj = this.colors[i % this.colors.length];
             let colorObj;
-            do {
-                colorObj = this.colors[Math.floor(Math.random() * this.colors.length)];
-            } while (colorObj.name === textObj.name && Math.random() < 0.7);
-
-            this.trials.push({
+            if (Math.random() < 0.8) {
+                const otherColors = this.colors.filter(c => c.name !== textObj.name);
+                colorObj = otherColors[Math.floor(Math.random() * otherColors.length)];
+            } else {
+                colorObj = textObj;
+            }
+            trialPool.push({
                 text: textObj.name,
                 colorName: colorObj.name,
                 colorCode: colorObj.code
             });
         }
+        for (let i = trialPool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [trialPool[i], trialPool[j]] = [trialPool[j], trialPool[i]];
+        }
+        this.trials = trialPool;
     },
 
     nextTrial() {
@@ -761,11 +827,38 @@ const StroopTest = {
         });
 
         this.startTime = performance.now();
+        this.startTimerBar();
+
+        this.timerId = setTimeout(() => {
+            this.handleTimeout();
+        }, this.timeLimitMs);
+    },
+
+    startTimerBar() {
+        const bar = document.getElementById('stroop-timer-bar');
+        if (!bar) return;
+        bar.style.width = '100%';
+        let elapsed = 0;
+        const step = 100;
+
+        if (this.barIntervalId) clearInterval(this.barIntervalId);
+
+        this.barIntervalId = setInterval(() => {
+            elapsed += step;
+            let percentage = Math.max(0, 100 - (elapsed / this.timeLimitMs) * 100);
+            bar.style.width = percentage + '%';
+            if (elapsed >= this.timeLimitMs) {
+                clearInterval(this.barIntervalId);
+            }
+        }, step);
     },
 
     handleResponse(selectedColorName) {
         if (this.userResponded) return;
         this.userResponded = true;
+
+        clearTimeout(this.timerId);
+        clearInterval(this.barIntervalId);
 
         const responseTimeMs = Math.round(performance.now() - this.startTime);
         const current = this.trials[this.currentTrial];
@@ -786,14 +879,41 @@ const StroopTest = {
         this.nextTrial();
     },
 
+    handleTimeout() {
+        if (this.userResponded) return;
+        this.userResponded = true;
+
+        clearInterval(this.barIntervalId);
+
+        const current = this.trials[this.currentTrial];
+
+        ExperimentDataManager.addLog(
+            this.currentMode,
+            this.currentRound,
+            "Stroop",
+            `Text: ${current.text}, Color: ${current.colorName}`,
+            current.colorName,
+            "TIMEOUT",
+            false,
+            null
+        );
+
+        this.currentTrial++;
+        this.nextTrial();
+    },
+
     finishTest() {
         document.getElementById('stroop-game').style.display = 'none';
+        showTestResultScreen("Stroop", this.currentMode, () => {
+            this.finalizeAllTests();
+        });
+    },
 
-        ExperimentDataManager.saveToLocalStorage();
-        ExperimentDataManager.sendToGoogleForm();
-
-        // テスト終了時に音声を停止する場合はここで stopExperimentAudio(); を呼ぶことも可能ですが、
-        // テスト中・終了後も流す仕様に合わせる形にしています。
+    finalizeAllTests() {
+        if (this.currentMode !== 'baseline') {
+            ExperimentDataManager.saveToLocalStorage();
+            ExperimentDataManager.sendToGoogleForm();
+        }
 
         const testTitle = document.getElementById('test-title');
         if (testTitle) {
@@ -815,9 +935,15 @@ const StroopTest = {
                 localStorage.setItem(`baseline_completed_${userEmail}`, 'true');
             }
 
+            let retryBaselineButtonHtml = '';
+            if (baselineRetryAllowed) {
+                retryBaselineButtonHtml = `<button class="btn-settings" onclick="retryBaselineTest()" style="margin-top: 15px; background-color: #e67e22; width: 100%;">1回だけ再測定する</button><br>`;
+            }
+
             msgDiv.innerHTML = `
                 <p style="font-size: 20px; color: #27ae60; font-weight: bold; margin: 20px 0;">基準値測定が完了しました！</p>
-                <button class="btn-main" onclick="finishBaselineToSound()">音源選択画面に進む</button>
+                ${retryBaselineButtonHtml}
+                <button class="btn-main" onclick="finishBaselineToSound()" style="margin-top: 15px;">音源選択画面に進む</button>
             `;
         } else {
             let retryButtonHtml = '';
@@ -834,6 +960,14 @@ const StroopTest = {
         testScreen.appendChild(msgDiv);
     }
 };
+
+function retryBaselineTest() {
+    if (!baselineRetryAllowed) return;
+    baselineRetryAllowed = false;
+    
+    ExperimentDataManager.data.baselineResults = { score: { correct: 0, total: 0 }, logs: [] };
+    startConcentrationTestMode('baseline');
+}
 
 function retryConcentrationTest() {
     if (!retryAllowed) return;
