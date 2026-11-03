@@ -995,7 +995,7 @@ function goToFeedbackForm() {
     const baseUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSfFaxyFl_JGlTo5LUmdFj9sEzv0HmEw-xbm4f_qv3wZ1Xr-aA/viewform';
     
     // 先ほど特定したログインID用のエントリーID
-    const entryId = 'entry.757322391';[cite: 2]
+    const entryId = 'entry.757322391';
     const encodedEmail = encodeURIComponent(userEmail);
 
     // 最終的なURLを組み立てる（プレフィル用パラメータ付与）
